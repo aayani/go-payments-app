@@ -1,0 +1,111 @@
+services:
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    pull_policy: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DISABLE_POSTFIX: "true"
+      PGADMIN_CONFIG_ENABLE_SERVER_PASS_EXEC_CMD: "True"
+    ports:
+      - "127.0.0.1:8888:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    configs:
+      - source: pgadmin_servers
+        target: /pgadmin4/servers.json
+
+  ministack:
+    image: ministackorg/ministack:latest
+    pull_policy: always
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      DOCKER_NETWORK: ${COMPOSE_PROJECT_NAME:-go-payments-app}_default
+      PERSIST_STATE: "1"
+      STATE_DIR: /data/ministack-state
+      RDS_PERSIST: "1"
+      MINISTACK_RDS_PUBLIC_ENDPOINT: "1"
+    ports:
+      - "127.0.0.1:4566:4566"
+    volumes:
+      - ministack_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  stackport:
+    image: davireis/stackport:latest
+    pull_policy: always
+    environment:
+      AWS_ENDPOINT_URL: http://ministack:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      STACKPORT_ALLOW_WRITES: "false"
+      STACKPORT_SERVICES: ecs,elasticache,elasticloadbalancing,logs,monitoring,rds
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      ministack:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:latest
+    pull_policy: always
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    configs:
+      - source: grafana_datasources
+        target: /etc/grafana/provisioning/datasources/cloudwatch.yaml
+    depends_on:
+      ministack:
+        condition: service_healthy
+
+configs:
+  grafana_datasources:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: MiniStack CloudWatch
+          uid: cloudwatch
+          type: cloudwatch
+          access: proxy
+          isDefault: true
+          editable: false
+          jsonData:
+            authType: keys
+            defaultRegion: us-east-1
+            endpoint: http://ministack:4566
+          secureJsonData:
+            accessKey: test
+            secretKey: test
+
+  pgadmin_servers:
+    content: |
+      {
+        "Servers": {
+          "1": {
+            "Name": "MiniStack payments",
+            "Group": "Servers",
+            "Host": "host.docker.internal",
+            "Port": 15432,
+            "MaintenanceDB": "payments",
+            "Username": "payments",
+            "PasswordExecCommand": "echo payments",
+            "ConnectionParameters": {
+              "sslmode": "prefer"
+            }
+          }
+        }
+      }
+
+volumes:
+  pgadmin_data:
+  ministack_data:
+  grafana_data:

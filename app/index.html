@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payments API</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"
+    />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      fetch(new URL("./openapi.json", window.location.href))
+        .then((response) => response.json())
+        .then((spec) => {
+          const docsIndex = window.location.pathname.lastIndexOf("/docs");
+          const basePath =
+            docsIndex < 0
+              ? "/"
+              : window.location.pathname.slice(0, docsIndex) || "/";
+          spec.servers = [{ url: basePath }];
+          SwaggerUIBundle({ spec, dom_id: "#swagger-ui", deepLinking: true });
+        });
+    </script>
+  </body>
+</html>

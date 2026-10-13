@@ -1,0 +1,165 @@
+{
+    "openapi": "3.2.1",
+    "info": {
+        "title": "Payments API",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/transactions/init": {
+            "post": {
+                "summary": "Initialize a transaction",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "source",
+                                    "destination",
+                                    "amount"
+                                ],
+                                "properties": {
+                                    "source": {
+                                        "type": "string",
+                                        "pattern": "^[0-9]{4}-[0-9]{7}$"
+                                    },
+                                    "destination": {
+                                        "type": "string",
+                                        "pattern": "^[0-9]{4}-[0-9]{7}$"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "exclusiveMinimum": 0,
+                                        "maximum": 99999999.99
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transaction initialized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "transactionId": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid transaction request"
+                    },
+                    "500": {
+                        "description": "Transaction service failure"
+                    }
+                }
+            }
+        },
+        "/api/transactions": {
+            "post": {
+                "summary": "Create an initialized transaction",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "transactionId"
+                                ],
+                                "properties": {
+                                    "transactionId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Transaction created"
+                    },
+                    "400": {
+                        "description": "Invalid, expired, or already-used transaction"
+                    },
+                    "500": {
+                        "description": "Transaction service failure"
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts": {
+            "get": {
+                "summary": "List accounts",
+                "responses": {
+                    "200": {
+                        "description": "Accounts returned"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create an account",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Account created"
+                    },
+                    "400": {
+                        "description": "Invalid account title"
+                    }
+                }
+            }
+        },
+        "/api/admin/transactions/{accountNumber}": {
+            "get": {
+                "summary": "List transactions for an account",
+                "parameters": [
+                    {
+                        "name": "accountNumber",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[0-9]{4}-[0-9]{7}$"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transactions returned"
+                    }
+                }
+            }
+        }
+    }
+}
